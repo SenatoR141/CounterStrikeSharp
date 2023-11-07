@@ -104,7 +104,7 @@ namespace WarcraftPlugin.Races
         {
             Player.PlayerPawn.Value.Health = 100 + (10 * WarcraftPlayer.GetAbilityLevel(1));
 
-            if (_invisiblityTimer != null)
+            if(_invisiblityTimer != null)
             {
                 _invisiblityTimer.Kill();
             }
@@ -177,6 +177,10 @@ namespace WarcraftPlugin.Races
         {
             Target.GetWarcraftPlayer()?.SetStatusMessage($"{ChatColors.Blue}[FROZEN]{ChatColors.Default}", Duration);
             // Target.MoveType = MoveType.MOVETYPE_NONE;
+            Target.PlayerPawn.Value.AbsVelocity.X = 0.0f;
+            Target.PlayerPawn.Value.AbsVelocity.Y = 0.0f;
+            Target.PlayerPawn.Value.AbsVelocity.Z = 0.0f;
+            Target.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_NONE;
             // Target.RenderMode = RenderMode.RENDER_TRANSCOLOR;
             // Target.Color = Color.FromArgb(255, 50, 50, 255);
             Console.WriteLine("Added freeze");
@@ -190,7 +194,7 @@ namespace WarcraftPlugin.Races
 
         public override void OnFinish()
         {
-            // Target.MoveType = MoveType.MOVETYPE_ISOMETRIC;
+            Target.PlayerPawn.Value.MoveType = MoveType_t.MOVETYPE_WALK;
             // Target.RenderMode = RenderMode.RENDER_NORMAL;
             // Target.Color = Color.FromArgb(255, 255, 255, 255);
             Console.WriteLine("Freeze finished");

@@ -26,7 +26,7 @@ namespace WarcraftPlugin.Races
 {
     public class RaceUndeadScourge : WarcraftRace
     {
-        private Timer _beepTimer;
+        //private Timer _beepTimer;
         public override string InternalName => "undead_scourge";
         public override string DisplayName => "Undead Scourge";
 

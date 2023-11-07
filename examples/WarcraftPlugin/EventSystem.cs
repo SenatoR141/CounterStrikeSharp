@@ -17,7 +17,7 @@
 using System;
 using CounterStrikeSharp.API;
 using CounterStrikeSharp.API.Core;
-using CounterStrikeSharp.API.Modules.Events;
+
 using CounterStrikeSharp.API.Modules.Utils;
 
 namespace WarcraftPlugin
@@ -36,6 +36,7 @@ namespace WarcraftPlugin
             _plugin.RegisterEventHandler<EventPlayerDeath>(PlayerDeathHandler);
             _plugin.RegisterEventHandler<EventPlayerSpawn>(PlayerSpawnHandler);
             _plugin.RegisterEventHandler<EventPlayerHurt>(PlayerHurtHandler);
+            _plugin.RegisterEventHandler<EventPlayerHurt>(PlayerHurtPreHandler,HookMode.Pre);
         }
 
         private HookResult PlayerHurtHandler(EventPlayerHurt @event, GameEventInfo _)
@@ -49,10 +50,31 @@ namespace WarcraftPlugin
             return HookResult.Continue;
         }
 
+        private HookResult PlayerHurtPreHandler(EventPlayerHurt @event, GameEventInfo _)
+        {
+            var victim = @event.Userid;
+            var attacker = @event.Attacker;
+
+            victim?.GetWarcraftPlayer()?.GetRace()?.InvokeEvent("player_hurt_pre", @event);
+            attacker?.GetWarcraftPlayer()?.GetRace()?.InvokeEvent("player_hurt_pre_other", @event);
+            
+            return HookResult.Changed;
+        }
+
         private HookResult PlayerSpawnHandler(EventPlayerSpawn @event, GameEventInfo _)
         {
             var player = @event.Userid;
             var race = player.GetWarcraftPlayer()?.GetRace();
+
+           
+            if(player.GetWarcraftPlayer().new_raceName != null)
+            {
+                player.GetWarcraftPlayer().raceName = player.GetWarcraftPlayer().new_raceName;
+                _plugin.Database.SaveCurrentRace(player);
+                _plugin.Database.LoadClientFromDatabase(player,  _plugin.XpSystem);
+                player.GetWarcraftPlayer().GetRace().PlayerChangingToRace();
+                player.GetWarcraftPlayer().new_raceName = null;
+            }
 
             if (race != null)
             {
@@ -113,6 +135,16 @@ namespace WarcraftPlugin
 
             victim?.GetWarcraftPlayer()?.GetRace()?.InvokeEvent("player_death", @event);
             attacker?.GetWarcraftPlayer()?.GetRace()?.InvokeEvent("player_kill", @event);
+
+            //If new race selected
+            if(victim.GetWarcraftPlayer().new_raceName != null)
+            {
+                victim.GetWarcraftPlayer().raceName = victim.GetWarcraftPlayer().new_raceName;
+                _plugin.Database.SaveCurrentRace(victim);
+                _plugin.Database.LoadClientFromDatabase(victim,  _plugin.XpSystem);
+                victim.GetWarcraftPlayer().GetRace().PlayerChangingToRace();
+                victim.GetWarcraftPlayer().new_raceName = null;
+            }
 
             WarcraftPlugin.Instance.EffectManager.ClearEffects(victim);
             

@@ -27,6 +27,7 @@ using CounterStrikeSharp.API.Modules.Menu;
 using CounterStrikeSharp.API.Modules.Timers;
 using CounterStrikeSharp.API.Modules.Utils;
 
+
 namespace WarcraftPlugin
 {
     public static class WarcraftPlayerExtensions
@@ -146,6 +147,7 @@ namespace WarcraftPlugin
         public int currentLevel;
         public int amountToLevel;
         public string raceName;
+        public string new_raceName;
         public string statusMessage;
 
         private List<int> _abilityLevels = new List<int>(new int[4]);
@@ -234,7 +236,7 @@ namespace WarcraftPlugin
         public RaceManager raceManager;
         public EffectManager EffectManager;
         public CooldownManager CooldownManager;
-        private Database _database;
+        public Database Database;
 
         public int XpPerKill = 20;
         public float XpHeadshotModifier = 0.25f;
@@ -249,7 +251,7 @@ namespace WarcraftPlugin
             {
                 if (player.IsValid && !player.IsBot)
                 {
-                    WarcraftPlayers[player.Handle] = _database.LoadClientFromDatabase(player, XpSystem);
+                    WarcraftPlayers[player.Handle] = Database.LoadClientFromDatabase(player, XpSystem);
                 }
                 else
                 {
@@ -274,7 +276,7 @@ namespace WarcraftPlugin
             XpSystem = new XpSystem(this);
             XpSystem.GenerateXpCurve(110, 1.07f, MaxLevel);
 
-            _database = new Database();
+            Database = new Database();
             raceManager = new RaceManager();
             raceManager.Initialize();
 
@@ -289,12 +291,16 @@ namespace WarcraftPlugin
             AddCommand("ability3", "ability3", Ability3Pressed);
             AddCommand("ultimate", "ultimate", Ability4Pressed);
 
+            AddCommand("wcs", "wcs", WcsMenu);
+            AddCommand("rpg", "wcs", WcsMenu);
+            AddCommand("war3menu", "wcs", WcsMenu);
             AddCommand("changerace", "changerace", CommandChangeRace);
             AddCommand("raceinfo", "raceinfo", CommandRaceInfo);
             AddCommand("resetskills", "resetskills", CommandResetSkills);
             AddCommand("addxp", "addxp", CommandAddXp);
             AddCommand("skills", "skills", (client, _) => ShowSkillPointMenu(GetWcPlayer(client)));
 
+            //AddCommand("kill", "suicide", CommandKill);
             // XpPerKill = new ConVar("wcgo_xp_kill", "20", "Base amount of xp granted for a kill",
             //     ConVarFlags.None);
             // XpHeadshotModifier = new ConVar("wcgo_xp_headshot", "0.25", "% bonus xp granted for headshot",
@@ -314,7 +320,7 @@ namespace WarcraftPlugin
             _eventSystem = new EventSystem(this);
             _eventSystem.Initialize();
 
-            _database.Initialize(ModuleDirectory);
+            Database.Initialize(ModuleDirectory);
         }
 
         private void CommandAddXp(CCSPlayerController? client, CommandInfo commandinfo)
@@ -342,7 +348,12 @@ namespace WarcraftPlugin
                 ShowSkillPointMenu(wcPlayer);
             }
         }
-
+        /*
+        private void CommandKill(CCSPlayerController? client, CommandInfo commandinfo)
+        {
+            client.PlayerPawn.Value.CommitSuicide(false, false);
+        }
+        */
         private void OnClientDisconnectHandler(int slot)
         {
             var player = new CCSPlayerController(NativeAPI.GetEntityFromIndex(slot + 1));
@@ -351,13 +362,13 @@ namespace WarcraftPlugin
 
             player.GetWarcraftPlayer().GetRace().PlayerChangingToAnotherRace();
             SetWcPlayer(player, null);
-            _database.SaveClientToDatabase(player);
+            Database.SaveClientToDatabase(player);
         }
 
         private void OnMapStartHandler(string mapName)
         {
             AddTimer(0.25f, StatusUpdate, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
-            AddTimer(60.0f, _database.SaveClients, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
+            AddTimer(60.0f, Database.SaveClients, TimerFlags.REPEAT | TimerFlags.STOP_ON_MAPCHANGE);
 
             // StringTables.AddFileToDownloadsTable("sound/warcraft/ui/questcompleted.mp3");
             // StringTables.AddFileToDownloadsTable("sound/warcraft/ui/gamefound.mp3");
@@ -384,10 +395,10 @@ namespace WarcraftPlugin
 
                 if (wcPlayer == null) continue;
 
-                var message = $"{wcPlayer.GetRace().DisplayName} ({wcPlayer.currentLevel})\n" +
+                var message = $"{wcPlayer.GetRace().DisplayName}[LVL {wcPlayer.currentLevel}]\n" +
                               (wcPlayer.IsMaxLevel
                                   ? ""
-                                  : $"Experience: {wcPlayer.currentXp}/{wcPlayer.amountToLevel}\n") +
+                                  : $"XP: {wcPlayer.currentXp}/{wcPlayer.amountToLevel}\n") +
                               $"{wcPlayer.statusMessage}";
 
                 player.PrintToCenter(message);
@@ -401,12 +412,12 @@ namespace WarcraftPlugin
             // No bots, invalid clients or non-existent clients.
             if (!player.IsValid || player.IsBot) return;
 
-            if (!_database.ClientExistsInDatabase(player.SteamID))
+            if (!Database.ClientExistsInDatabase(player.SteamID))
             {
-                _database.AddNewClientToDatabase(player);
+                Database.AddNewClientToDatabase(player);
             }
 
-            WarcraftPlayers[player.Handle] = _database.LoadClientFromDatabase(player, XpSystem);
+            WarcraftPlayers[player.Handle] = Database.LoadClientFromDatabase(player, XpSystem);
 
             Console.WriteLine("Player just connected: " + WarcraftPlayers[player.Handle]);
         }
@@ -444,20 +455,22 @@ namespace WarcraftPlugin
             {
                 menu.AddMenuOption(race.DisplayName, ((player, option) =>
                 {
-                    _database.SaveClientToDatabase(player);
+                    Database.SaveClientToDatabase(player);
 
                     // Dont do anything if were already that race.
                     if (race.InternalName == player.GetWarcraftPlayer().raceName) return;
 
-                    player.GetWarcraftPlayer().GetRace().PlayerChangingToAnotherRace();
-                    player.GetWarcraftPlayer().raceName = race.InternalName;
+                    //player.GetWarcraftPlayer().GetRace().PlayerChangingToAnotherRace();
+                    player.GetWarcraftPlayer().new_raceName = race.InternalName;
 
-                    _database.SaveCurrentRace(player);
-                    _database.LoadClientFromDatabase(player, XpSystem);
+                    Database.SaveCurrentRace(player);
+                    //Database.LoadClientFromDatabase(player, XpSystem);
 
-                    player.GetWarcraftPlayer().GetRace().PlayerChangingToRace();
+                    //player.GetWarcraftPlayer().GetRace().PlayerChangingToRace();
 
-                    player.PlayerPawn.Value.CommitSuicide(false, false);
+                    //player.PlayerPawn.Value.CommitSuicide(false, false);
+                     player.PrintToChat(
+                            $" {ChatColors.Gold}You will be{ChatColors.Green} {player.GetWarcraftPlayer().new_raceName}{ChatColors.Gold} after death or spawn");
                 }));
             }
 
@@ -483,7 +496,16 @@ namespace WarcraftPlugin
         {
             GetWcPlayer(client)?.GetRace()?.InvokeAbility(3);
         }
-
+        private void WcsMenu(CCSPlayerController? client, CommandInfo commandinfo)
+        {
+            client.PrintToChat($" {ChatColors.Gold} ----------------------");
+            client.PrintToChat($" {ChatColors.Red} WCS{ChatColors.Green} Commands list{ChatColors.Red} WRITE IN CONSOLE OR CHAT WITH !");
+            client.PrintToChat($" {ChatColors.Green} changerace{ChatColors.Default} - to change race");
+            client.PrintToChat($" {ChatColors.Green} raceinfo{ChatColors.Default} - to race info");
+            client.PrintToChat($" {ChatColors.Green} resetskills{ChatColors.Default} - to reset your skills");
+            client.PrintToChat($" {ChatColors.Green} skills{ChatColors.Default} - to upgrade your skill");
+            client.PrintToChat($" {ChatColors.Gold} ----------------------");
+        }
         public override void Unload(bool hotReload)
         {
             base.Unload(hotReload);

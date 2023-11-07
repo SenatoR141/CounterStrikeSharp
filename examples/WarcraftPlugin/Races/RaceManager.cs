@@ -27,8 +27,10 @@ namespace WarcraftPlugin.Races
 
         public void Initialize()
         {
+            
             RegisterRace<RaceUndeadScourge>();
             RegisterRace<RaceHumanAlliance>();
+            RegisterRace<RaceNightElf>();
         }
 
         private void RegisterRace<T>() where T : WarcraftRace, new()

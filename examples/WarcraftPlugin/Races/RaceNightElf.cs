@@ -89,13 +89,9 @@ namespace WarcraftPlugin.Races
             var attacker = @event.Attacker;
             if(victim != attacker)
             {
-                victim.PrintToChat("Виктим=! атакер");
+				/*
                 var chance = new Random().Next(0,100)*1.0;
                 int EvasionLevel = WarcraftPlayer.GetAbilityLevel(0);
-                victim.PrintToChat($"Уровень скилла {EvasionLevel.ToString()}");
-                bool ev = false;
-                victim.PrintToChat($" шансы");
-                victim.PrintToChat($"шанс {chance.ToString()} ");
                 float ec = EvasionChance[EvasionLevel];
 
                 if(chance<=50)
@@ -104,8 +100,8 @@ namespace WarcraftPlugin.Races
                     victim.PrintToChat($"{ChatColors.Gold} You dodged a shot");
                     ev = true;
                 }
-
-
+				*/
+				 bool ev = false;
                 if(!ev)
                 {
                     int ThornsAuraLevel = WarcraftPlayer.GetAbilityLevel(1);
